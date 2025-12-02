@@ -4,28 +4,36 @@ import json
 from datetime import datetime
 
 def generate_code_using_bedrock(message: str, language: str) -> str:
-    prompt_text = f'''
-        Human: Write {language} code for following instruction: {message}.
-        Assistant:
-    '''
+    prompt = f"""Write {language} code for the following instruction - 
+
+    {message}
+
+    Output ONLY raw {language} code.
+    Do NOT include explanation, comment, markdown, backtick, or text of any kind.
+    Return ONLY the final code."""
+
+
     body = {
-        "prompt": prompt_text,
-        "max_tokens_to_sample": 2048,
-        "temperature": 0,
-        "top_k": 250,
-        "top_p": 1,
-        "stop_sequences": ["\nHuman:"]
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 512,
+        "temperature": 0.5,
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": prompt}],
+            }
+        ],
     }
 
     try:
-        bedrock = boto3.client("bedrock-runtime", region_name="us-west-2", config=botocore.config.Config(read_timeout=300, retries = {'max_attempts': 3}))
+        bedrock = boto3.client("bedrock-runtime", region_name="us-east-1", config=botocore.config.Config(read_timeout=300, retries = {'max_attempts': 3}))
         response = bedrock.invoke_model(
             body=json.dumps(body),
-            modelId="anthropic.claude-v2",
+            modelId="anthropic.claude-3-haiku-20240307-v1:0",
         )
         response_content = response.get("body").read().decode("utf-8")
-        response_data = json.loads(response_content)
-        code = response_data["completion"].strip()
+        response_json = json.loads(response_content)
+        code = response_json["content"][0]["text"].strip()
         return code
     except Exception as e:
         print("Error generating code - ", e)
@@ -49,7 +57,7 @@ def lambda_handler(event, context):
     if generated_code:
         current_time = datetime.now().strftime("%H:%M:%S")
         s3_key = f'code-output/{current_time}.py'
-        s3-bucket = 'bedrock-bucket'
+        s3_bucket = 'bedrock-bucket-hr'
         save_code_to_s3_bucket(generated_code, s3_bucket, s3_key)
     else:
         print("Failed to generate code.")
