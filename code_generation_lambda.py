@@ -47,6 +47,16 @@ def save_code_to_s3_bucket(code, s3_bucket, s3_key):
     except Exception as e:
         print("Error saving code to S3 bucket - ", e)
 
+def generate_pre_signed_url(s3_bucket, s3_key):
+    s3 = boto3.client('s3')
+    presigned_url = s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={'Bucket': s3_bucket, 'Key': s3_key},
+        ExpiresIn=3600
+    )
+    return presigned_url
+
+
 def lambda_handler(event, context):
     event = json.loads(event['body'])
     message = event['message']
@@ -54,15 +64,20 @@ def lambda_handler(event, context):
     print("Message - ", message)
     print("Language - ", language)
     generated_code = generate_code_using_bedrock(message, language)
+    download_url = ""
     if generated_code:
         current_time = datetime.now().strftime("%H:%M:%S")
         s3_key = f'code-output/{current_time}.py'
         s3_bucket = 'bedrock-bucket-hr'
         save_code_to_s3_bucket(generated_code, s3_bucket, s3_key)
+        download_url = generate_pre_signed_url(s3_bucket, s3_key)
     else:
         print("Failed to generate code.")
     
     return {
         'statusCode': 200,
-        'body': json.dumps('Code generation complete.')
+        'body': json.dumps({
+            'message': 'Code generation complete.',
+            'download_url': download_url
+        })
     }
