@@ -10,5 +10,5 @@ model = BedrockModel(
     streaming=True
 )
 
-agennt = Agent(model=model)
-response = agennt("What is AWS re:Invent? Answer in one sentence.")
+agent = Agent(model=model)
+response = agent("What is AWS re:Invent? Answer in one sentence.")
