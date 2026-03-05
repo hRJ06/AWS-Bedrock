@@ -15,6 +15,7 @@ agent = Agent(
     - I have hot-reloading abilities, after writing the file, I can use it immediately.
 
     Building tools:
+    
 
     from strands import tool
 
